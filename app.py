@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas_datareader as data
 from keras.models import load_model
 import streamlit as st
+import yfinance as yf
 
 
 start = '2010-01-01'
@@ -13,10 +14,12 @@ end = dt.datetime.now()
 st.title('Stock Trend Prediction')
 
 user_input = st.text_input('Enter Stock Ticker','AAPL')
-df = data.DataReader(user_input,'yahoo',start,end)
+msft = yf.Ticker(user_input)
+df = msft.history(period='1d', start=start, end=end)
+df.reset_index(inplace=True)    
 
 #Describing Data
-st.subheader('Data from 2010-2022')
+st.subheader('Data from 2010-2023')
 st.write(df.describe())
 
 #Visulalizations
@@ -103,15 +106,26 @@ st.pyplot(fig2)
 
 
 #Next day prediction
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
 st.subheader("Next day prediction")
 total_dataset = pd.concat((df['Close'],data_testing['Close']),axis=0)
 model_inputs = total_dataset[len(total_dataset)-len(data_testing)-100:].values
 model_inputs = model_inputs.reshape(-1,1)
+scaler.fit(model_inputs)
 model_inputs = scaler.transform(model_inputs)
 real_data = [model_inputs[len(model_inputs)+1 - 100:len(model_inputs+1),0]]
 real_data = np.array(real_data)
 real_data = np.reshape(real_data, (real_data.shape[0], real_data.shape[1], 1))
 prediction = model.predict(real_data)
-# prediction = scaler.inverse_transform(prediction)
+prediction = scaler.inverse_transform(prediction)
 st.write(prediction)
+
+#Accuracy
+st.subheader("Accuracy")
+from sklearn.metrics import accuracy_score,mean_squared_error,r2_score
+accuracy = r2_score(y_test, y_predicted)
+st.write(accuracy*100)
+
+
 
